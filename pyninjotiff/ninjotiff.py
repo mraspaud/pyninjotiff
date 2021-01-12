@@ -1071,9 +1071,21 @@ def tiffwrite(output_fn, image_data, args, tifargs, ovw_factors):
         tif.save(image_data, **args)
         for factor in ovw_factors:
             ovw_args = args.copy()
-            ovw_args['extratags'] = dict()
+            ovw_args['extratags'] = args['extratags'].copy()
             ovw_args['tile_length'] //= factor
             ovw_args['tile_width'] //= factor
+
+            for extratag in args['extratags']:
+                if extratag[0] in [40012, 40014]:
+                    ovw_args['extratags'].remove(extratag)
+                    new_tag = list(extratag)
+                    new_tag[3] //= factor
+                    ovw_args['extratags'].append(tuple(new_tag))
+                elif extratag[0] == GTF_ModelPixelScale:
+                    ovw_args['extratags'].remove(extratag)
+                    new_tag = list(extratag)
+                    new_tag[3] = tuple(np.array(extratag[3]) * factor)
+                    ovw_args['extratags'].append(tuple(new_tag))
             tif.save(image_data[::factor, ::factor], **ovw_args)
 
     log.info("Successfully created a NinJo tiff file: '%s'" % (output_fn,))

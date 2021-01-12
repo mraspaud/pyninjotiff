@@ -422,7 +422,7 @@ def test_write_rgb_with_a():
 
 
 def test_write_rgb_tb():
-    """Test saving a non-trasparent RGB with thumbnails."""
+    """Test saving a non-transparent RGB with thumbnails."""
     from pyninjotiff.ninjotiff import save
     from pyninjotiff.tifffile import TiffFile
 
@@ -562,7 +562,23 @@ def test_write_rgb_tb():
         for key, val in tags.items():
             if key in ['datetime', '40002', '40003', '40006']:
                 continue
-            assert(val == read_tags[key].value)
+            assert val == read_tags[key].value
+        # check that quicklook was generated
+        assert len(tif.pages) == 2
+        read_tags = tif.pages[1].tags
+        overview_tags = set(tags.keys()) - {'software'}
+        assert(read_tags.keys() == overview_tags)
+        tags['40012'] = 512
+        tags['40014'] = 512
+        tags['image_width'] = 512
+        tags['image_length'] = 512
+        tags['tile_width'] = 128
+        tags['tile_length'] = 128
+        tags['model_pixel_scale'] = tuple(np.array(tags['model_pixel_scale']) * 2)
+        for key, val in read_tags.items():
+            if key in ['datetime', '40002', '40003', '40006', 'tile_offsets', 'tile_byte_counts']:
+                continue
+            assert val.value == tags[key], "Different value for tag %s" % str(key)
 
 
 @pytest.mark.skip(reason="this is no implemented yet.")
